@@ -171,9 +171,16 @@ def plot_world_status_timeline(world_history, **kwargs):
 
     print(f"{begin_date} -- {end_date}")
     ax.set_xlim(mdates.date2num(begin_date), mdates.date2num(end_date))
-    loc = mdates.AutoDateLocator()
-    ax.xaxis.set_major_locator(loc)
-    ax.xaxis.set_major_formatter(mdates.ConciseDateFormatter(loc))
+
+    year_locator = mdates.YearLocator()  # defaults to every 1 year
+    year_fmt = mdates.DateFormatter("%Y")
+
+    ax.xaxis.set_major_locator(year_locator)
+    ax.xaxis.set_major_formatter(year_fmt)
+
+#    loc = mdates.AutoDateLocator()
+#    ax.xaxis.set_major_locator(loc)
+#    ax.xaxis.set_major_formatter(mdates.ConciseDateFormatter(loc))
 
     ax.set_xlabel("Date")
     ax.set_title(title_str)
@@ -184,7 +191,6 @@ def plot_world_status_timeline(world_history, **kwargs):
         for status, color in STATUS_COLORS.items()] +\
     [plt.Line2D([0], [0], color="#333333", linestyle="--", label="WPBI system begins")]+\
     [plt.Line2D([0], [0], color="#333333", linestyle=":", label="World Visit begins")]
-
 
     ax.legend(handles=handles, title="Status", bbox_to_anchor=(1.04, 1), loc="upper left")
 
