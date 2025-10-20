@@ -11,15 +11,18 @@ no new characters can be created there, as well as "New" or
 to those worlds. See [the Lodestone](https://na.finalfantasyxiv.com/lodestone/playguide/option_service/world_transfer_service/population_balancing/)
 for details on how this system works.
 
-## Results (as of 2025-10-14)
+For plots of just the last 18 months instead of the full history, see
+[here](prev_year/README.md).
 
-### North American Data Center
+## Results (as of 2025-10-14)
 
 Note: "PRE_WBPI" is a placeholder status for before the congestion system was
 implemented. Presumably, all worlds that were not labeled "Congested" when the
 system was introduced became "Standard" worlds, but I didn't want to make
 assumptions so I don't change a world's status away from "PRE_WBPI" until
 a notice comes out confirming a status change.
+
+### North American Data Center
 
 ![](plots/Aether.svg)
 ![](plots/Crystal.svg)

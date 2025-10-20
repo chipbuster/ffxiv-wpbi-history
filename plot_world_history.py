@@ -172,18 +172,18 @@ def plot_world_status_timeline(world_history, **kwargs):
     print(f"{begin_date} -- {end_date}")
     ax.set_xlim(mdates.date2num(begin_date), mdates.date2num(end_date))
 
-    year_locator = mdates.YearLocator()  # defaults to every 1 year
-    year_fmt = mdates.DateFormatter("%Y")
+#    year_locator = mdates.MonthLocator()  # defaults to every 1 year
+#    year_fmt = mdates.DateFormatter("%Y-%m")
+#    ax.xaxis.set_major_locator(year_locator)
+#    ax.xaxis.set_major_formatter(year_fmt)
 
-    ax.xaxis.set_major_locator(year_locator)
-    ax.xaxis.set_major_formatter(year_fmt)
-
-#    loc = mdates.AutoDateLocator()
-#    ax.xaxis.set_major_locator(loc)
-#    ax.xaxis.set_major_formatter(mdates.ConciseDateFormatter(loc))
+    loc = mdates.AutoDateLocator(minticks=12, maxticks=20)
+    ax.xaxis.set_major_locator(loc)
+    ax.xaxis.set_major_formatter(mdates.ConciseDateFormatter(loc))
 
     ax.set_xlabel("Date")
     ax.set_title(title_str)
+    plt.setp(ax.get_xticklabels(), rotation=90, ha="center")
 
     # Legend
     handles = [
@@ -199,6 +199,7 @@ def plot_world_status_timeline(world_history, **kwargs):
 
 for dc in ffxiv_data_centers:
     plot_world_status_timeline(world_history, worlds=ffxiv_data_centers[dc], out_file=f"plots/{dc}.svg", title=f"History of Worlds on {dc}")
+    plot_world_status_timeline(world_history, worlds=ffxiv_data_centers[dc], out_file=f"prev_year/{dc}.svg", title=f"History of Worlds on {dc}", begin_date = datetime.date.today() - datetime.timedelta(days=540))
 
 # An example call which plots all worlds in a limited timeframe
 # plot_world_status_timeline(world_history, begin_date = datetime.date(2020, 1, 1), end_date = datetime.date(2024, 1, 1))
