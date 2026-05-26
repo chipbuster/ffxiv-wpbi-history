@@ -7,12 +7,14 @@ from pathlib import Path
 
 import matplotlib.dates as mdates
 import matplotlib.pyplot as plt
+from matplotlib.transforms import blended_transform_factory
 
 WPBI_INTRODUCED = datetime.date(2017, 5, 17)
 WORLDVISIT_INTRODUCED = datetime.date(2019, 4, 23)
 
 FILE_DIR = Path(os.path.dirname(os.path.abspath(__file__)))
 WORLD_HISTORY_PATH = FILE_DIR.parent / "data" / "world_history.jsonl"
+PATCH_DATES_PATH = FILE_DIR.parent / "data" / "patch_dates.jsonl"
 
 
 class WorldStatus(Enum):
@@ -21,6 +23,17 @@ class WorldStatus(Enum):
     PREFERRED = auto()
     STANDARD = auto()
     CONGESTED = auto()
+
+
+def load_patch_dates(path: Path) -> list:
+    if not path.exists():
+        return []
+    pairs = []
+    with open(path, "r") as f:
+        for line in f:
+            record = json.loads(line)
+            pairs.append((record["patch"], datetime.date.fromisoformat(record["date"])))
+    return pairs
 
 
 def load_world_history(path: Path) -> dict:
@@ -156,9 +169,9 @@ ffxiv_data_centers = {
 # Colorblind-friendly palette approximating your request
 STATUS_COLORS = {
     WorldStatus.PRE_WPBI: "#7A8FA6",  # Slate blue-gray
-    WorldStatus.NEW: "#AB47BC",        # Vibrant purple
+    WorldStatus.NEW: "#AB47BC",  # Vibrant purple
     WorldStatus.PREFERRED: "#2ECC71",  # Emerald green
-    WorldStatus.STANDARD: "#2196F3",   # Vivid blue
+    WorldStatus.STANDARD: "#2196F3",  # Vivid blue
     WorldStatus.CONGESTED: "#E53935",  # Bright red
 }
 
@@ -178,6 +191,7 @@ def plot_world_status_timeline(world_history, **kwargs):
         "end_date": datetime.date.today(),
         "out_file": "plots/output.svg",
         "title": "FFXIV World Status Timeline",
+        "patch_pairs": [],
     }
     kwargs = {**defaultKwargs, **kwargs}
 
@@ -186,6 +200,7 @@ def plot_world_status_timeline(world_history, **kwargs):
     end_date = kwargs["end_date"]
     out_file = kwargs["out_file"]
     title_str = kwargs["title"]
+    patch_pairs = kwargs["patch_pairs"]
 
     worlds.sort(reverse=True)
 
@@ -238,10 +253,40 @@ def plot_world_status_timeline(world_history, **kwargs):
         ax.axvline(
             x=mdates.date2num(WORLDVISIT_INTRODUCED),
             color="black",
-            linestyle=":",
+            linestyle="-.",
             linewidth=1.5,
             alpha=0.8,
         )
+
+    patches_in_range = [(p, d) for p, d in patch_pairs if begin_date <= d <= end_date]
+    long_history = (end_date - begin_date).days > int(365.25 * 2.5)
+    show_patch_labels = patches_in_range and not long_history
+    if patches_in_range:
+        trans = blended_transform_factory(ax.transData, ax.transAxes)
+        for patch_str, patch_date in patches_in_range:
+            x = mdates.date2num(patch_date)
+            if show_patch_labels:
+                ax.axvline(
+                    x=x,
+                    color="black",
+                    linestyle=":",
+                    linewidth=1.0,
+                    alpha=0.6,
+                    zorder=3,
+                )
+            if show_patch_labels:
+                ax.text(
+                    x,
+                    1.005,
+                    f"Patch {patch_str}",
+                    transform=trans,
+                    rotation=45,
+                    fontsize=5,
+                    va="bottom",
+                    ha="left",
+                    color="black",
+                    clip_on=False,
+                )
 
     # Format axis
     ax.set_yticks(list(y_positions.values()))
@@ -262,7 +307,9 @@ def plot_world_status_timeline(world_history, **kwargs):
     ax.grid(axis="x", color="black", alpha=0.08, linewidth=0.7, zorder=0)
 
     ax.set_xlabel("Date")
-    ax.set_title(title_str, fontsize=16, fontfamily="serif")
+    ax.set_title(
+        title_str, fontsize=16, fontfamily="serif", pad=30 if show_patch_labels else 6
+    )
     plt.setp(ax.get_xticklabels(), rotation=90, ha="center")
 
     # Legend
@@ -272,12 +319,35 @@ def plot_world_status_timeline(world_history, **kwargs):
             for status, color in STATUS_COLORS.items()
         ]
         + (
-            [plt.Line2D([0], [0], color="#333333", linestyle="--", label="WPBI system begins")]
-            if show_wpbi else []
+            [
+                plt.Line2D(
+                    [0],
+                    [0],
+                    color="#333333",
+                    linestyle="--",
+                    label="WPBI system begins",
+                )
+            ]
+            if show_wpbi
+            else []
         )
         + (
-            [plt.Line2D([0], [0], color="#333333", linestyle=":", label="World Visit begins")]
-            if show_worldvisit else []
+            [
+                plt.Line2D(
+                    [0],
+                    [0],
+                    color="#333333",
+                    linestyle="-.",
+                    label="World Visit begins",
+                )
+            ]
+            if show_worldvisit
+            else []
+        )
+        + (
+            [plt.Line2D([0], [0], color="black", linestyle=":", label="Patch release")]
+            if show_patch_labels
+            else []
         )
     )
 
@@ -286,7 +356,7 @@ def plot_world_status_timeline(world_history, **kwargs):
     )
 
     plt.tight_layout()
-    plt.savefig(out_file)
+    plt.savefig(out_file, bbox_inches="tight")
 
 
 def _default_begin_date() -> datetime.date:
@@ -326,11 +396,18 @@ def main():
         metavar="DATE",
         help="Earliest date to include in plots, as YYYY-MM-DD (default: 24 months ago).",
     )
+    ap.add_argument(
+        "--patch-dates",
+        type=Path,
+        default=PATCH_DATES_PATH,
+        help=f"JSONL of patch dates from scrape_patch_dates.py (default: {PATCH_DATES_PATH})",
+    )
     args = ap.parse_args()
 
     args.output_dir.mkdir(parents=True, exist_ok=True)
 
     wh = load_world_history(args.world_history)
+    patch_pairs = load_patch_dates(args.patch_dates)
 
     for dc, worlds in ffxiv_data_centers.items():
         plot_world_status_timeline(
@@ -339,6 +416,7 @@ def main():
             out_file=args.output_dir / f"{dc}.svg",
             title=dc,
             begin_date=args.history_length,
+            patch_pairs=patch_pairs,
         )
 
 
