@@ -20,7 +20,7 @@ from typing import List, Optional, Tuple
 FILE_DIR = Path(os.path.dirname(os.path.abspath(__file__)))
 WIKI_URL = "https://ffxiv.consolegameswiki.com/wiki/Patches"
 HTML_CACHE_PATH = FILE_DIR / "wiki_patches.html"
-STATUS_NOTICES_PATH = FILE_DIR.parent / "data" / "status_notices.jsonl"
+WORLD_HISTORY_PATH = FILE_DIR.parent / "data" / "world_history.jsonl"
 PATCH_DATES_PATH = FILE_DIR.parent / "data" / "patch_dates.jsonl"
 
 WPBI_INTRODUCED = date(2017, 5, 17)
@@ -106,24 +106,22 @@ def extract_patch_dates(html: str) -> List[Tuple[str, date]]:
     return results
 
 
-# ── Notice loading ────────────────────────────────────────────────────────────
+# ── World history loading ─────────────────────────────────────────────────────
+
+_SEED_STATUSES = {"PRE_WPBI", "NEW"}
 
 
-def _parse_notice_date(notice: dict) -> date:
-    fmt_candidates = ["%m/%d/%Y", "%Y/%m/%d", "%m-%d-%Y", "%Y-%m-%d"]
-    if "date" in notice and notice["date"]:
-        for fmt in fmt_candidates:
-            try:
-                return datetime.strptime(notice["date"], fmt).date()
-            except Exception:
-                pass
-    raise ValueError(f"Could not parse date from notice: {notice.get('date')!r}")
-
-
-def load_notice_dates(path: Path) -> List[date]:
+def load_change_dates(path: Path) -> List[date]:
+    """Return the unique dates on which any world changed status, excluding
+    the initial PRE_WPBI/NEW seed events that don't correspond to notices."""
+    seen: set = set()
     with open(path, encoding="utf-8") as f:
-        notices = [json.loads(line) for line in f]
-    return [_parse_notice_date(n) for n in notices]
+        for line in f:
+            record = json.loads(line)
+            for event in record["history"]:
+                if event["status"] not in _SEED_STATUSES:
+                    seen.add(date.fromisoformat(event["date"]))
+    return sorted(seen)
 
 
 # ── Correlation & output ──────────────────────────────────────────────────────
@@ -164,10 +162,10 @@ def main():
         description="Correlate FFXIV patch dates with world congestion status changes."
     )
     ap.add_argument(
-        "--status-notices",
+        "--world-history",
         type=Path,
-        default=STATUS_NOTICES_PATH,
-        help=f"JSONL of filtered world status notices (default: {STATUS_NOTICES_PATH})",
+        default=WORLD_HISTORY_PATH,
+        help=f"World history JSONL produced by analyze_world_history.py (default: {WORLD_HISTORY_PATH})",
     )
     ap.add_argument(
         "--url",

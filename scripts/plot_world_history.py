@@ -28,7 +28,10 @@ def load_world_history(path: Path) -> dict:
         for line in f:
             record = json.loads(line)
             world_history[record["world"]] = [
-                (WorldStatus[event["status"]], datetime.date.fromisoformat(event["date"]))
+                (
+                    WorldStatus[event["status"]],
+                    datetime.date.fromisoformat(event["date"]),
+                )
                 for event in record["history"]
             ]
     return world_history

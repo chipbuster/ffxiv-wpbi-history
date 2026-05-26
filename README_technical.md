@@ -12,6 +12,10 @@ intended to be very user-friendly**. You will need to be at least somewhat
 familiar with Python (or be willing to ask a friend/LLM for help) in order
 to be able to use this code effectively.
 
+Large portions of the plotting and textual analysis code were written by ChatGPT
+in chatbot mode. A number of smaller later revisions were written with Claude
+Code.
+
 ### Quickstart
 
 This repository uses `uv` to manage dependencies. To get started, install
