@@ -3,7 +3,7 @@ XIV World Status History
 
 I got bored and decided to write a tool which can visualize the 
 congestion history of worlds in FFXIV. See [the Lodestone](https://na.finalfantasyxiv.com/lodestone/playguide/option_service/world_transfer_service/population_balancing/)
-for details on how this system works.
+for details on how the population balancing incentives work.
 
 ## Results 
 
