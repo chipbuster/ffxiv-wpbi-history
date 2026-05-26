@@ -155,11 +155,19 @@ ffxiv_data_centers = {
 
 # Colorblind-friendly palette approximating your request
 STATUS_COLORS = {
-    WorldStatus.PRE_WPBI: "#7F7F7F",  # Gray
-    WorldStatus.NEW: "#F78DC9",  # Soft magenta/pink
-    WorldStatus.PREFERRED: "#55A868",  # Green (Okabe-Ito)
-    WorldStatus.STANDARD: "#4C72B0",  # Blue (Okabe-Ito)
-    WorldStatus.CONGESTED: "#C44E52",  # Red (Okabe-Ito)
+    WorldStatus.PRE_WPBI: "#7A8FA6",  # Slate blue-gray
+    WorldStatus.NEW: "#AB47BC",        # Vibrant purple
+    WorldStatus.PREFERRED: "#2ECC71",  # Emerald green
+    WorldStatus.STANDARD: "#2196F3",   # Vivid blue
+    WorldStatus.CONGESTED: "#E53935",  # Bright red
+}
+
+STATUS_LABELS = {
+    WorldStatus.PRE_WPBI: "Pre-Balancing",
+    WorldStatus.NEW: "Preferred+",
+    WorldStatus.PREFERRED: "Preferred",
+    WorldStatus.STANDARD: "Standard",
+    WorldStatus.CONGESTED: "Congested",
 }
 
 
@@ -181,7 +189,7 @@ def plot_world_status_timeline(world_history, **kwargs):
 
     worlds.sort(reverse=True)
 
-    fig, ax = plt.subplots(figsize=(12, max(6, len(worlds) * 0.3)))
+    fig, ax = plt.subplots(figsize=(12, len(worlds) * 4 / 6))
 
     # Sort worlds alphabetically for consistent y positions
     y_positions = {world: i for i, world in enumerate(worlds)}
@@ -198,7 +206,8 @@ def plot_world_status_timeline(world_history, **kwargs):
                 xmin=mdates.date2num(start_date),
                 xmax=mdates.date2num(next_date),
                 colors=STATUS_COLORS[status],
-                linewidth=8,
+                linewidth=20,
+                capstyle="butt",
             )
         # Last segment runs to "today" for visualization or to next known marker
         last_status, last_date = history[-1]
@@ -207,26 +216,32 @@ def plot_world_status_timeline(world_history, **kwargs):
             xmin=mdates.date2num(last_date),
             xmax=mdates.date2num(datetime.date.today()),
             colors=STATUS_COLORS[last_status],
-            linewidth=8,
+            linewidth=20,
+            capstyle="butt",
         )
 
-    ax.axvline(
-        x=mdates.date2num(WPBI_INTRODUCED),
-        color="black",
-        linestyle="--",
-        linewidth=1.5,
-        alpha=0.8,
-        label="World Population Balancing Introduced",
-    )
+    ax.set_ylim(-0.5, len(worlds) - 0.5)
 
-    ax.axvline(
-        x=mdates.date2num(WORLDVISIT_INTRODUCED),
-        color="black",
-        linestyle=":",
-        linewidth=1.5,
-        alpha=0.8,
-        label="World Visit System Introduced",
-    )
+    show_wpbi = begin_date <= WPBI_INTRODUCED <= end_date
+    show_worldvisit = begin_date <= WORLDVISIT_INTRODUCED <= end_date
+
+    if show_wpbi:
+        ax.axvline(
+            x=mdates.date2num(WPBI_INTRODUCED),
+            color="black",
+            linestyle="--",
+            linewidth=1.5,
+            alpha=0.8,
+        )
+
+    if show_worldvisit:
+        ax.axvline(
+            x=mdates.date2num(WORLDVISIT_INTRODUCED),
+            color="black",
+            linestyle=":",
+            linewidth=1.5,
+            alpha=0.8,
+        )
 
     # Format axis
     ax.set_yticks(list(y_positions.values()))
@@ -244,30 +259,30 @@ def plot_world_status_timeline(world_history, **kwargs):
     ax.xaxis.set_major_locator(loc)
     ax.xaxis.set_major_formatter(mdates.ConciseDateFormatter(loc))
 
+    ax.grid(axis="x", color="black", alpha=0.08, linewidth=0.7, zorder=0)
+
     ax.set_xlabel("Date")
-    ax.set_title(title_str)
+    ax.set_title(title_str, fontsize=16, fontfamily="serif")
     plt.setp(ax.get_xticklabels(), rotation=90, ha="center")
 
     # Legend
     handles = (
         [
-            plt.Line2D([0], [0], color=color, lw=6, label=status.name)
+            plt.Line2D([0], [0], color=color, lw=6, label=STATUS_LABELS[status])
             for status, color in STATUS_COLORS.items()
         ]
-        + [
-            plt.Line2D(
-                [0], [0], color="#333333", linestyle="--", label="WPBI system begins"
-            )
-        ]
-        + [
-            plt.Line2D(
-                [0], [0], color="#333333", linestyle=":", label="World Visit begins"
-            )
-        ]
+        + (
+            [plt.Line2D([0], [0], color="#333333", linestyle="--", label="WPBI system begins")]
+            if show_wpbi else []
+        )
+        + (
+            [plt.Line2D([0], [0], color="#333333", linestyle=":", label="World Visit begins")]
+            if show_worldvisit else []
+        )
     )
 
     ax.legend(
-        handles=handles, title="Status", bbox_to_anchor=(1.04, 1), loc="upper left"
+        handles=handles, title="Status", bbox_to_anchor=(1.04, 0.5), loc="center left"
     )
 
     plt.tight_layout()
@@ -280,6 +295,12 @@ def _default_begin_date() -> datetime.date:
         return today.replace(year=today.year - 2)
     except ValueError:
         return today.replace(year=today.year - 2, day=28)
+
+
+def _parse_history_length(s: str) -> datetime.date:
+    if s.lower() == "all":
+        return datetime.date(2017, 1, 1)
+    return datetime.date.fromisoformat(s)
 
 
 def main():
@@ -300,7 +321,7 @@ def main():
     )
     ap.add_argument(
         "--history-length",
-        type=datetime.date.fromisoformat,
+        type=_parse_history_length,
         default=_default_begin_date(),
         metavar="DATE",
         help="Earliest date to include in plots, as YYYY-MM-DD (default: 24 months ago).",
@@ -316,7 +337,7 @@ def main():
             wh,
             worlds=worlds,
             out_file=args.output_dir / f"{dc}.svg",
-            title=f"History of Worlds on {dc}",
+            title=dc,
             begin_date=args.history_length,
         )
 

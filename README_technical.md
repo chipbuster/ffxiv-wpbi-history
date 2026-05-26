@@ -27,6 +27,16 @@ uv sync
 uv run playwright install
 ```
 
+From there, you can run the update script to get the latest information by 
+running
+
+```bash
+uv run update_repo.py
+```
+
+Once you've done this, you can also examine when world status changes occurred
+relative to patches, by running `uv run scripts/analyze_patch_dates.py`.
+
 ### Data Sources
 
 Most data for world congestion status is found in the form of notices on the
@@ -42,10 +52,6 @@ stored in `world_creation.txt`. Any world which is created before the
 congestion system is implemented is given an initial state of `PRE_WPBI` which
 just means that it doesn't have a congested status yet. Any world created
 after the system is assumed to start off in the `NEW` state.
-
-Note: "New" has been renamed to "Preferred+" in 7.3, about a month
-before I wrote this, so the scraper will probably need to be updated
-at some point.
 
 ### Scraper Checking
 
@@ -75,9 +81,14 @@ to the `plots` directory. Additional arguments include limiting the x-axis
 to a certain set of dates, changing the worlds plotted (pass `worlds=None`
 to plot all worlds on the same plot), and changing the output file name.
 
-## Notes on Internal Naming
+## Notes On Naming Conventions
 
 Before 7.3, the ["Preferred+" World status was known as new](https://na.finalfantasyxiv.com/lodestone/news/detail/7f6fa05ecc979911791a6019c3fc430a24b619e6).
 Since writing "Preferred+" is really annoying in code (and also because the first
 draft of this code was written very shortly after 7.3), the status is internally
 known as "new".
+
+"Notices" are the JSON blobs created by the scraper. E.g. all_notices and
+status_notices are the JSON blobs associated with Lodestone scrapes. More
+refined data are not called notices, e.g. the extracted set of world status
+changes are the world_history.

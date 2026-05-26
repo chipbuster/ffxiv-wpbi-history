@@ -322,24 +322,56 @@ async def scrape(
     return results
 
 
+def _merge_notices(existing: List[Dict], new: List[Dict]) -> List[Dict]:
+    """Deduplicate by URL (existing wins on collision) and sort by date."""
+    seen: set = set()
+    merged = []
+    for notice in existing + new:
+        if notice["url"] not in seen:
+            seen.add(notice["url"])
+            merged.append(notice)
+    merged.sort(key=parse_notice_date)
+    return merged
+
+
+def _filter_status_notices(notices: List[Dict]) -> List[Dict]:
+    return [n for n in notices if STATUS_FILTER_PHRASE in n["body"].lower()]
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument(
         "--cutoff-date",
         type=lambda s: datetime.date.fromisoformat(s),
-        default=datetime.date(2000, 1, 1),
+        default=None,
+        help="Scrape notices back to this date (YYYY-MM-DD). Mutually exclusive with --update.",
     )
     ap.add_argument(
         "--all-notices",
         type=Path,
         default=FILE_DIR.parent / "data" / "all_notices.jsonl",
-        help="Write a JSONL containing all scraped notices to this path.",
+        help="Path for all scraped notices.",
     )
     ap.add_argument(
         "--status-notices",
         type=Path,
         default=FILE_DIR.parent / "data" / "status_notices.jsonl",
-        help="Write a JSONL containing notices that mention WPBI status changes to this path.",
+        help="Path for filtered world status notices.",
+    )
+    ap.add_argument(
+        "--update",
+        action="store_true",
+        help=(
+            "Update mode: read existing all_notices to determine cutoff date, "
+            "then merge new results into both output files."
+        ),
+    )
+    ap.add_argument(
+        "--from-all-notices",
+        type=Path,
+        default=None,
+        metavar="PATH",
+        help="Skip scraping and load notices from this existing all_notices JSONL instead.",
     )
     ap.add_argument(
         "--delay",
@@ -357,38 +389,50 @@ def main():
 
     setup_logging(args.log_level)
 
-    results = asyncio.run(
-        scrape(
-            category_url=CATEGORY_URL,
-            cutoff_date=args.cutoff_date,
-            per_item_delay=args.delay,
+    if args.update and args.cutoff_date is not None:
+        ap.error("--update and --cutoff-date are mutually exclusive")
+
+    # Load existing notices and determine cutoff when updating.
+    existing: List[Dict] = []
+    if args.update and args.all_notices.exists():
+        with open(args.all_notices, encoding="utf-8") as f:
+            existing = [json.loads(line) for line in f]
+        if existing:
+            cutoff_date = max(parse_notice_date(n) for n in existing)
+            LOG.info(
+                "Update mode: cutoff date set to %s from existing notices", cutoff_date
+            )
+        else:
+            cutoff_date = datetime.date(2000, 1, 1)
+    else:
+        cutoff_date = args.cutoff_date or datetime.date(2000, 1, 1)
+
+    # Scrape (or load from file).
+    if args.from_all_notices:
+        LOG.info("Loading notices from %s (skipping scrape)", args.from_all_notices)
+        with open(args.from_all_notices, encoding="utf-8") as f:
+            new_results = [json.loads(line) for line in f]
+    else:
+        new_results = asyncio.run(
+            scrape(
+                category_url=CATEGORY_URL,
+                cutoff_date=cutoff_date,
+                per_item_delay=args.delay,
+            )
         )
-    )
 
-    if results and args.all_notices:
-        with open(args.all_notices, "w") as res_f:
-            for res in results:
-                res_f.write(json.dumps(res) + "\n")
+    all_results = _merge_notices(existing, new_results)
 
-    if results and args.status_notices:
-        # The outputs might be duplicated, so we deduplicate them by URL.
-        output_idxs = set()
-        output_urls = set()
+    if all_results and args.all_notices:
+        with open(args.all_notices, "w", encoding="utf-8") as f:
+            for res in all_results:
+                f.write(json.dumps(res) + "\n")
 
-        for i, res in enumerate(results):
-            if (
-                STATUS_FILTER_PHRASE in res["body"].lower()
-                and res["url"] not in output_urls
-            ):
-                output_urls.add(res["url"])
-                output_idxs.add(i)
-
-        status_res = [results[i] for i in output_idxs]
-        status_res.sort(key=parse_notice_date)
-
-        with open(args.status_notices, "w") as res_f:
+    if all_results and args.status_notices:
+        status_res = _filter_status_notices(all_results)
+        with open(args.status_notices, "w", encoding="utf-8") as f:
             for res in status_res:
-                res_f.write(json.dumps(res) + "\n")
+                f.write(json.dumps(res) + "\n")
 
 
 if __name__ == "__main__":
