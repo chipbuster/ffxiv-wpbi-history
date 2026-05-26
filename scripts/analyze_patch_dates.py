@@ -209,8 +209,8 @@ def main():
     if args.patch_dates_only:
         return
 
-    notice_dates = load_notice_dates(args.status_notices)
-    correlate_and_print(patch_pairs, notice_dates)
+    change_dates = load_change_dates(args.world_history)
+    correlate_and_print(patch_pairs, change_dates)
 
 
 if __name__ == "__main__":
