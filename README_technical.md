@@ -63,6 +63,7 @@ can actually fail for two different reasons:
 
 - [Several notices have a typo where the line is "Changde to Congested World"](https://na.finalfantasyxiv.com/lodestone/news/detail/d6342fa250d71b1d9694824ea1796cd1094b1431)
 - [If only one world is changed, the notice may read "Changed to **a** Congested World"](https://na.finalfantasyxiv.com/lodestone/news/detail/6c7d04c3238cede50b04abc4787fe0123aaf6f82)
+- We need to correctly detect both "New" and "Preferred+" as the same category, since the name changed in 7.3.
 
 This potentially creates a lot of issues where transitions between different
 world states can be missed. To try to address this, I wrote a sanity check
@@ -72,7 +73,7 @@ and then we see a notice that it has been changed to a Standard world, this
 indicates that we probably missed a change to congested somewhere) and that
 there are no changes that occur on the same day.
 
-This sanity check was instrumental to finding the above two issues. However,
+This sanity check was instrumental to finding the above issues. However,
 this obviously not bulletproof, and errors might still exist in the data.
 
 ### Plotting Options
