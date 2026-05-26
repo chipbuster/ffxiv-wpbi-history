@@ -1,0 +1,16 @@
+[project]
+name = "lodestone-scraper"
+version = "0.1.0"
+description = "A simple script to scrape and visualize world status changes in FF XIV"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "matplotlib>=3.10.9",
+    "numpy>=2.4.6",
+    "pillow>=12.2.0",
+    "playwright>=1.60.0",
+    "pyee>=13.0.1",
+    "python-dateutil>=2.9.0.post0",
+    "ruff>=0.15.14",
+    "typing-extensions>=4.15.0",
+]
