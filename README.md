@@ -15,28 +15,30 @@ for details on how this system works.
 
 _Last Updated: 2025-10-14_
 
-These are the plots for 
+These plots show recent history for each Data Center. If you want plots of
+all-time history, see [this page](./README_alltime.md).
 
 ### North American Data Center
 
-![](plots/Aether.svg)
-![](plots/Crystal.svg)
-![](plots/Dynamis.svg)
-![](plots/Primal.svg)
+![](plots/lim_time/Aether.svg)
+![](plots/lim_time/Crystal.svg)
+![](plots/lim_time/Dynamis.svg)
+![](plots/lim_time/Primal.svg)
 
 ### European Data Center
-![](plots/Chaos.svg)
-![](plots/Light.svg)
+![](plots/lim_time/Chaos.svg)
+![](plots/lim_time/Light.svg)
 
 ### Japanese Data Center
-![](plots/Elemental.svg)
-![](plots/Gaia.svg)
-![](plots/Mana.svg)
-![](plots/Meteor.svg)
+![](plots/lim_time/Elemental.svg)
+![](plots/lim_time/Gaia.svg)
+![](plots/lim_time/Mana.svg)
+![](plots/lim_time/Meteor.svg)
  
 ### Oceania Data Center
-![](plots/Materia.svg)
+![](plots/lim_time/Materia.svg)
 
 ## Technical Details
 
-If you would like to
+If you would like a technical README, including instructions on how to
+run this code yourself, see [this file](./README_technical.md).

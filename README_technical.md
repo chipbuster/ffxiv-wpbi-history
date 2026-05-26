@@ -14,25 +14,13 @@ to be able to use this code effectively.
 
 ### Quickstart
 
+This repository uses `uv` to manage dependencies. To get started, install
+the dependencies, as well as the browsers that playwright uses to do the
+scraping:
+
 ```bash
-   python -m venv xivhist
-   # Activation command may depend on your shell
-   source xivhist/bin/activate
-   pip install -r requirements.txt
-
-   # I don't know what happens if you give the wrong max_pages here. I suggest
-   # visiting the lodestone to confirm the page number is correct. Also note
-   # that this command will take a while.
-   python scrape_notices.py --max_pages 70 --jsonl notices.jsonl
-
-   # Reads notices.jsonl to create filtered.jsonl
-   python filter_notices.py
-
-   # Reads filtered.jsonl to create worlds.pkl
-   python analyze_world_history.py
-
-   # Uses data in worlds.pkl to plot
-   python plot_world_history.py
+uv sync
+uv run playwright install
 ```
 
 ### Data Sources

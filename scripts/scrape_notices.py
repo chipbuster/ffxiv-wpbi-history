@@ -4,6 +4,7 @@ import asyncio
 import datetime
 import json
 import logging
+import os
 import re
 import time
 from pathlib import Path
@@ -14,7 +15,7 @@ from playwright.async_api import async_playwright
 
 CATEGORY_URL = "https://na.finalfantasyxiv.com/lodestone/news/category/1"
 LOG = logging.getLogger("lodestone")
-WBPI_FILTER_PHRASE = "Congested/Preferred".lower()
+STATUS_FILTER_PHRASE = "Congested/Preferred".lower()
 
 
 def setup_logging(level: str):
@@ -157,19 +158,6 @@ async def extract_detail(detail_page, url: str) -> Optional[Dict]:
     }
 
 
-def _bump_page_param(listing_url: str) -> str:
-    """Increment ?page=N (or add ?page=2) on the *listing* URL, preserving other params/fragments."""
-    parsed = urlparse(listing_url)
-    qs = parse_qs(parsed.query)
-    try:
-        n = int(qs.get("page", ["1"])[0])
-        qs["page"] = [str(n + 1)]
-    except Exception:
-        qs["page"] = ["2"]
-    new_q = urlencode(qs, doseq=True)
-    return urlunparse(parsed._replace(query=new_q))
-
-
 async def find_next_page(list_page, current_listing_url: str) -> Optional[str]:
     """Find the next category page; choose the smallest page number > current.
     If no anchors, synthesize ?page=current+1 on the *listing* URL."""
@@ -223,9 +211,6 @@ async def find_next_page(list_page, current_listing_url: str) -> Optional[str]:
         )
         return href
 
-    # 3) Last resort: synthesize current+1
-    from urllib.parse import parse_qs, urlencode, urlparse, urlunparse
-
     parsed = urlparse(current_listing_url)
     qs = parse_qs(parsed.query)
     qs["page"] = [str(curr_page_num + 1)]
@@ -250,15 +235,10 @@ async def scrape(
     # We want to allow for the fact that a few posts on the lodestone may be
     # out-of-order. For this, we say that we need to see four pages older
     # than the cutoff date in order to bail out of scraping.
-    MAX_PAGES_OVER_CUTOFF_DATE = 4
-    num_pages_over_cutoff_date = 0
+    MAX_POSTS_OVER_CUTOFF_DATE = 4
+    num_posts_over_cutoff_date = 0
 
-    LOG.info(
-        "Starting scrape: %s (max_pages=%s, per_item_delay=%.2fs)",
-        category_url,
-        max_pages,
-        per_item_delay,
-    )
+    LOG.info(f"Starting scrape on {category_url}")
 
     async with async_playwright() as pw:
         browser = await pw.chromium.launch(headless=True)
@@ -279,16 +259,15 @@ async def scrape(
         page_count = 0
         empty_pages_in_a_row = 0
 
-        while page_url and (max_pages is None or page_count < max_pages):
-            LOG.info("Opening category page %d: %s", page_count + 1, page_url)
+        while page_url:
+            page_count += 1
+            LOG.info("Opening category page %d: %s", page_count, page_url)
             await list_page.goto(page_url, wait_until="domcontentloaded")
             await click_through_unsupported(list_page)
             current_listing_url = list_page.url  # always a listing URL
 
             links = await extract_list_links(list_page)
-            LOG.info(
-                "Processing %d detail links from page %d.", len(links), page_count + 1
-            )
+            LOG.info("Processing %d detail links from page %d.", len(links), page_count)
 
             if not links:
                 empty_pages_in_a_row += 1
@@ -307,20 +286,16 @@ async def scrape(
                 detail = await extract_detail(detail_page, href)
                 if detail:
                     results.append(detail)
-                    if jsonl_path:
-                        with jsonl_path.open("a", encoding="utf-8") as f:
-                            f.write(json.dumps(detail, ensure_ascii=False) + "\n")
                     try:
                         notice_date = parse_notice_date(detail)
                         if notice_date < cutoff_date:
-                            num_pages_over_cutoff_date += 1
-                    except Exception as e:
+                            num_posts_over_cutoff_date += 1
+                    except Exception:
                         LOG.info(f"Could not extract notice date from URL {href}")
-
                 else:
                     LOG.warning("Skipped detail due to empty extraction: %s", href)
 
-            if num_pages_over_cutoff_date < MAX_PAGES_OVER_CUTOFF_DATE:
+            if num_posts_over_cutoff_date < MAX_POSTS_OVER_CUTOFF_DATE:
                 next_url = await find_next_page(list_page, current_listing_url)
                 if not next_url:
                     LOG.info("Stopping: no further pages.")
@@ -330,7 +305,7 @@ async def scrape(
                 page_url = next_url
             else:
                 LOG.info(
-                    f"Found {num_pages_over_cutoff_date} pages older than {cutoff_date}, stopping now",
+                    f"Found {num_posts_over_cutoff_date} posts older than {cutoff_date}, stopping now",
                 )
                 break
 
@@ -347,6 +322,8 @@ async def scrape(
 
 
 def main():
+    file_dir = Path(os.path.dirname(os.path.abspath(__file__)))
+
     ap = argparse.ArgumentParser()
     ap.add_argument(
         "--cutoff-date",
@@ -356,14 +333,14 @@ def main():
     ap.add_argument(
         "--all-notices",
         type=Path,
-        default=None,
+        default=file_dir / "data" / "all_notices.jsonl",
         help="Write a JSONL containing all scraped notices to this path.",
     )
     ap.add_argument(
-        "--wpbi-notices",
+        "--status-notices",
         type=Path,
-        default=None,
-        help="Write a JSONL containing notices that mention WPBI to this path.",
+        default=file_dir / "data" / "status_notices.jsonl",
+        help="Write a JSONL containing notices that mention WPBI status changes to this path.",
     )
     ap.add_argument(
         "--delay",
@@ -394,21 +371,24 @@ def main():
             for res in results:
                 res_f.write(json.dumps(res) + "\n")
 
-    if results and args.wpbi_notices:
+    if results and args.status_notices:
         # The outputs might be duplicated, so we deduplicate them by URL.
         output_idxs = set()
         output_urls = set()
 
         for i, res in enumerate(results):
-            if WBPI_FILTER_PHRASE in res["body"].lower() and res["url"] not in urls:
+            if (
+                STATUS_FILTER_PHRASE in res["body"].lower()
+                and res["url"] not in output_urls
+            ):
                 output_urls.add(res["url"])
                 output_idxs.add(i)
 
-        wbpi_res = [results[i] for i in output_idxs]
-        wbpi_res.sort(key=parse_notice_date)
+        status_res = [results[i] for i in output_idxs]
+        status_res.sort(key=parse_notice_date)
 
-        with open(args.wbpi_notices, "w") as res_f:
-            for res in wbpi_res:
+        with open(args.status_notices, "w") as res_f:
+            for res in status_res:
                 res_f.write(json.dumps(res) + "\n")
 
 
