@@ -35,7 +35,8 @@ uv run update_repo.py
 ```
 
 Once you've done this, you can also examine when world status changes occurred
-relative to patches, by running `uv run scripts/analyze_patch_dates.py`.
+relative to patches, by running `uv run scripts/analyze_patch_dates.py`. 
+`update_repo.py` has short explanations of what each script does.
 
 ### Data Sources
 

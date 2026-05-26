@@ -7,7 +7,7 @@ for details on how this system works.
 
 ## Results 
 
-_Last Updated: 2025-10-14_
+_Last Updated: 2026-05-26_
 
 These plots show recent history for each Data Center. If you want plots of
 all-time history, see [this page](./README_alltime.md).
