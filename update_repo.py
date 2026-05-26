@@ -2,8 +2,10 @@
 # scripts we need. We prefer explicit flag passing instead of relying on
 # defaults.
 import os
+import re
 import subprocess
 import sys
+from datetime import date
 from pathlib import Path
 
 REPO_ROOT = Path(os.path.dirname(os.path.abspath(__file__)))
@@ -83,6 +85,15 @@ subprocess.run(
         PLOT_LIMITED_DIR,
     ]
 )
+
+# Step 5: Stamp today's date into the READMEs.
+_DATE_RE = re.compile(r"_Last Updated: \d{4}-\d{2}-\d{2}_")
+_today = f"_Last Updated: {date.today().isoformat()}_"
+for readme in [REPO_ROOT / "README.md", REPO_ROOT / "README_alltime.md"]:
+    text = readme.read_text(encoding="utf-8")
+    updated = _DATE_RE.sub(_today, text)
+    if updated != text:
+        readme.write_text(updated, encoding="utf-8")
 
 # Optional: run the analysis for patch dates
 run_pda = False

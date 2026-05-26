@@ -1,0 +1,44 @@
+name: Weekly Data Update
+
+on:
+  schedule:
+    - cron: "0 6 * * 1" # Every Monday at 06:00 UTC
+  workflow_dispatch: # Allow manual trigger for testing
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+
+      - name: Install Python dependencies
+        run: uv sync
+
+      - name: Install Playwright browser + system deps
+        run: uv run playwright install --with-deps chromium
+
+      - name: Run update script
+        run: uv run python update_repo.py
+
+      - name: Stage output files
+        run: git add data/ plots/ README.md README_alltime.md
+
+      - name: Check for changes
+        id: changes
+        run: |
+          git diff --cached --quiet && echo "changed=false" >> "$GITHUB_OUTPUT" || echo "changed=true" >> "$GITHUB_OUTPUT"
+
+      - name: Commit and push
+        if: steps.changes.outputs.changed == 'true'
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git commit -m "chore: weekly data and plot update [skip ci]"
+          git push
