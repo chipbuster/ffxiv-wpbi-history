@@ -2,9 +2,7 @@ import argparse
 import datetime
 import json
 import os
-import pickle
 import re
-import sys
 from enum import Enum, auto
 from pathlib import Path
 from typing import Dict, List, Optional
@@ -285,6 +283,7 @@ def serialize_world_history(world_history: Dict[str, list]) -> List[dict]:
 
 
 def main():
+    print(FILE_DIR.parent)
     ap = argparse.ArgumentParser(
         description="Build FFXIV world status histories from scraped notices."
     )
@@ -308,7 +307,7 @@ def main():
     )
     args = ap.parse_args()
 
-    with open(args.status_notices, "r") as f:
+    with open(args.status_notices, "w") as f:
         notices = [json.loads(line) for line in f]
 
     histories = get_world_history_all(notices, args.world_creation)

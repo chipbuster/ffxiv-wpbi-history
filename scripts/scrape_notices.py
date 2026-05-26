@@ -332,13 +332,13 @@ def main():
     ap.add_argument(
         "--all-notices",
         type=Path,
-        default=FILE_DIR / "data" / "all_notices.jsonl",
+        default=FILE_DIR.parent / "data" / "all_notices.jsonl",
         help="Write a JSONL containing all scraped notices to this path.",
     )
     ap.add_argument(
         "--status-notices",
         type=Path,
-        default=FILE_DIR / "data" / "status_notices.jsonl",
+        default=FILE_DIR.parent / "data" / "status_notices.jsonl",
         help="Write a JSONL containing notices that mention WPBI status changes to this path.",
     )
     ap.add_argument(
