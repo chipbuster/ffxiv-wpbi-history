@@ -12,6 +12,8 @@ _Last Updated: 2025-10-14_
 These plots show recent history for each Data Center. If you want plots of
 all-time history, see [this page](./README_alltime.md).
 
+Note that "Preferred+" was known as "New" before Patch 7.3.
+
 ### North American Data Center
 
 ![](plots/lim_time/Aether.svg)

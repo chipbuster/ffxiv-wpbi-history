@@ -28,7 +28,7 @@ class WorldStatus(Enum):
 ################################################
 
 _HEADING_RE = re.compile(
-    r"^▼\s*[A-Za-z]+ to.*\s+(Preferred|Standard|Congested)\s+Worlds?\b",
+    r"^▼\s*[A-Za-z]+ to.*\s+(Preferred\+|Preferred|Standard|Congested)\s+Worlds?\b",
     re.IGNORECASE,
 )
 
@@ -78,15 +78,18 @@ def parse_notice_date(notice):
 
 def extract_world_changes(notice):
     """
-    Returns (notice_date, preferred, standard, congested) from a Lodestone notice body.
+    Returns (notice_date, new_world, preferred, standard, congested) from a
+    Lodestone notice body. "Preferred+" worlds (renamed from "New" in patch 7.3)
+    are returned in the new_world bucket.
     - Aggregates across multiple data-center sections.
-    - Ignores 'New World' and footer sections like 'Related News'.
+    - Ignores footer sections like 'Related News'.
     - Only accepts single-token world names (letters with optional ' or -).
     """
     body = (notice.get("body") or "").splitlines()
     # Trim whitespace and skip purely empty lines up-front
     lines = [ln.strip() for ln in body]
 
+    new_world: List[str] = []
     preferred: List[str] = []
     standard: List[str] = []
     congested: List[str] = []
@@ -106,7 +109,9 @@ def extract_world_changes(notice):
         m = _HEADING_RE.match(ln)
         if m:
             label = m.group(1).lower()
-            if label == "preferred":
+            if label == "preferred+" or label == "new":
+                current_bucket = new_world
+            elif label == "preferred":
                 current_bucket = preferred
             elif label == "standard":
                 current_bucket = standard
@@ -124,7 +129,7 @@ def extract_world_changes(notice):
             current_bucket.append(ln)
 
     notice_dt = parse_notice_date(notice)
-    return notice_dt, preferred, standard, congested
+    return notice_dt, new_world, preferred, standard, congested
 
 
 ###################
@@ -223,7 +228,10 @@ def update_worlds_from_notices(world_history: Dict[str, list], notices: list):
     notices = sorted(notices, key=parse_notice_date)
 
     for notice in notices:
-        n_date, n_pref, n_stand, n_cong = extract_world_changes(notice)
+        n_date, n_new, n_pref, n_stand, n_cong = extract_world_changes(notice)
+        for name in n_new:
+            _add_world_event(world_history, n_date, WorldStatus.NEW, name)
+
         for name in n_pref:
             _add_world_event(world_history, n_date, WorldStatus.PREFERRED, name)
 
@@ -307,7 +315,7 @@ def main():
     )
     args = ap.parse_args()
 
-    with open(args.status_notices, "w") as f:
+    with open(args.status_notices, "r") as f:
         notices = [json.loads(line) for line in f]
 
     histories = get_world_history_all(notices, args.world_creation)

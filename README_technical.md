@@ -74,3 +74,10 @@ The default functionality of the plotting script is to write one SVG per DC
 to the `plots` directory. Additional arguments include limiting the x-axis
 to a certain set of dates, changing the worlds plotted (pass `worlds=None`
 to plot all worlds on the same plot), and changing the output file name.
+
+## Notes on Internal Naming
+
+Before 7.3, the ["Preferred+" World status was known as new](https://na.finalfantasyxiv.com/lodestone/news/detail/7f6fa05ecc979911791a6019c3fc430a24b619e6).
+Since writing "Preferred+" is really annoying in code (and also because the first
+draft of this code was written very shortly after 7.3), the status is internally
+known as "new".

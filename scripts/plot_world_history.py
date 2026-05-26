@@ -1,3 +1,4 @@
+import argparse
 import datetime
 import json
 import os
@@ -36,8 +37,6 @@ def load_world_history(path: Path) -> dict:
             ]
     return world_history
 
-
-world_history = load_world_history(WORLD_HISTORY_PATH)
 
 # The plotting code is mostly written by GPT, with some manual human
 # intervention to plot particular dates. The structure here is...kinda awful
@@ -275,20 +274,52 @@ def plot_world_status_timeline(world_history, **kwargs):
     plt.savefig(out_file)
 
 
-for dc in ffxiv_data_centers:
-    plot_world_status_timeline(
-        world_history,
-        worlds=ffxiv_data_centers[dc],
-        out_file=f"plots/{dc}.svg",
-        title=f"History of Worlds on {dc}",
-    )
-    plot_world_status_timeline(
-        world_history,
-        worlds=ffxiv_data_centers[dc],
-        out_file=f"prev_year/{dc}.svg",
-        title=f"History of Worlds on {dc}",
-        begin_date=datetime.date.today() - datetime.timedelta(days=540),
-    )
+def _default_begin_date() -> datetime.date:
+    today = datetime.date.today()
+    try:
+        return today.replace(year=today.year - 2)
+    except ValueError:
+        return today.replace(year=today.year - 2, day=28)
 
-# An example call which plots all worlds in a limited timeframe
-# plot_world_status_timeline(world_history, begin_date = datetime.date(2020, 1, 1), end_date = datetime.date(2024, 1, 1))
+
+def main():
+    ap = argparse.ArgumentParser(
+        description="Plot FFXIV world status timelines by data center."
+    )
+    ap.add_argument(
+        "--world-history",
+        type=Path,
+        default=WORLD_HISTORY_PATH,
+        help=f"World history JSONL produced by analyze_world_history.py (default: {WORLD_HISTORY_PATH})",
+    )
+    ap.add_argument(
+        "--output-dir",
+        type=Path,
+        default=FILE_DIR.parent / "plots",
+        help="Directory to write SVG plots into (default: <project>/plots).",
+    )
+    ap.add_argument(
+        "--history-length",
+        type=datetime.date.fromisoformat,
+        default=_default_begin_date(),
+        metavar="DATE",
+        help="Earliest date to include in plots, as YYYY-MM-DD (default: 24 months ago).",
+    )
+    args = ap.parse_args()
+
+    args.output_dir.mkdir(parents=True, exist_ok=True)
+
+    wh = load_world_history(args.world_history)
+
+    for dc, worlds in ffxiv_data_centers.items():
+        plot_world_status_timeline(
+            wh,
+            worlds=worlds,
+            out_file=args.output_dir / f"{dc}.svg",
+            title=f"History of Worlds on {dc}",
+            begin_date=args.history_length,
+        )
+
+
+if __name__ == "__main__":
+    main()
