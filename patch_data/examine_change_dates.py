@@ -4,6 +4,7 @@ from datetime import datetime, timedelta, date
 
 WPBI_INTRODUCED = date(2017, 5, 17)
 
+
 def parse_notice_date(notice):
     fmt_candidates = ["%m/%d/%Y", "%Y/%m/%d", "%m-%d-%Y", "%Y-%m-%d"]
     if "date" in notice and notice["date"]:
@@ -14,10 +15,11 @@ def parse_notice_date(notice):
                 pass
     raise ValueError("Could not parse date from notice.")
 
-with open("filtered.jsonl", encoding="utf-8") as fin:
-    notices = [ json.loads(l) for l in fin.readlines() ]
 
-congestion_change_dates = [ parse_notice_date(n) for n in notices ]
+with open("filtered.jsonl", encoding="utf-8") as fin:
+    notices = [json.loads(l) for l in fin.readlines()]
+
+congestion_change_dates = [parse_notice_date(n) for n in notices]
 
 # --- Load patch CSV ---
 patch_dates = {}

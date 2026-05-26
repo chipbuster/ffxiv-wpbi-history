@@ -13,6 +13,7 @@ PATCH_DATE_REGEX = re.compile(
     re.IGNORECASE | re.VERBOSE,
 )
 
+
 def normalize_text(s: str) -> str:
     # Normalize dashes and whitespace
     s = s.replace("\u2013", "-").replace("\u2014", "-")
@@ -24,6 +25,7 @@ def normalize_text(s: str) -> str:
     # Collapse whitespace
     s = re.sub(r"\s+", " ", s)
     return s
+
 
 def extract_pairs(html_text: str) -> List[Tuple[str, str]]:
     text = normalize_text(html_text)
@@ -38,11 +40,19 @@ def extract_pairs(html_text: str) -> List[Tuple[str, str]]:
             ordered.append(key)
     return ordered
 
+
 def main():
-    ap = argparse.ArgumentParser(description="Extract FFXIV patch numbers and release dates from ConsoleGamesWiki 'Patches' HTML.")
+    ap = argparse.ArgumentParser(
+        description="Extract FFXIV patch numbers and release dates from ConsoleGamesWiki 'Patches' HTML."
+    )
     ap.add_argument("html_path", type=Path, help="Path to the downloaded HTML file.")
-    ap.add_argument("-o", "--output", type=Path, default=Path("ffxiv_patches.csv"),
-                    help="Output CSV path (default: ffxiv_patches.csv)")
+    ap.add_argument(
+        "-o",
+        "--output",
+        type=Path,
+        default=Path("ffxiv_patches.csv"),
+        help="Output CSV path (default: ffxiv_patches.csv)",
+    )
     args = ap.parse_args()
 
     if not args.html_path.exists():
@@ -60,6 +70,6 @@ def main():
 
     print(f"Wrote {len(pairs)} rows to {args.output}")
 
+
 if __name__ == "__main__":
     main()
-

@@ -16,6 +16,7 @@ from playwright.async_api import async_playwright
 CATEGORY_URL = "https://na.finalfantasyxiv.com/lodestone/news/category/1"
 LOG = logging.getLogger("lodestone")
 STATUS_FILTER_PHRASE = "Congested/Preferred".lower()
+FILE_DIR = Path(os.path.dirname(os.path.abspath(__file__)))
 
 
 def setup_logging(level: str):
@@ -297,7 +298,7 @@ async def scrape(
 
             if num_posts_over_cutoff_date < MAX_POSTS_OVER_CUTOFF_DATE:
                 next_url = await find_next_page(list_page, current_listing_url)
-                if not next_url:
+                if not next_url or next_url == page_url:
                     LOG.info("Stopping: no further pages.")
                     break
                 LOG.info("Navigating to next category page: %s", next_url)
@@ -322,8 +323,6 @@ async def scrape(
 
 
 def main():
-    file_dir = Path(os.path.dirname(os.path.abspath(__file__)))
-
     ap = argparse.ArgumentParser()
     ap.add_argument(
         "--cutoff-date",
@@ -333,13 +332,13 @@ def main():
     ap.add_argument(
         "--all-notices",
         type=Path,
-        default=file_dir / "data" / "all_notices.jsonl",
+        default=FILE_DIR / "data" / "all_notices.jsonl",
         help="Write a JSONL containing all scraped notices to this path.",
     )
     ap.add_argument(
         "--status-notices",
         type=Path,
-        default=file_dir / "data" / "status_notices.jsonl",
+        default=FILE_DIR / "data" / "status_notices.jsonl",
         help="Write a JSONL containing notices that mention WPBI status changes to this path.",
     )
     ap.add_argument(
