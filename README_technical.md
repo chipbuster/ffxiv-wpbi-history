@@ -1,20 +1,21 @@
+**Disclaimer: The first version of this code was thrown together with ChatGPT
+and some hack-job manual coding. The refinements were partially done by hand
+with refinements done by Claude Code. It is not optimized for being 
+well-structured or understandable.**
+
 ## More details on tooling
 
 This tool consists of several components:
 
-- a scraper to gather data from Lodestone (mostly written by ChatGPT because I *hate* writing scraper code)
-- a cleanup utility which grabs just the world status changes,
-- some code to analyze and validate the world status history and serialize it
-- plotting code to visualize the changes (also mostly written by GPT, because I haven't touched matplotlib in a hot decade)
+- A tool to scrape notices from the Lodestone and store the ones that appear to
+  correspond to world status changes (`scrape_notices.py`)
+- A tool to analyze the scraped notices and create a clean history of world
+  status changes, without duplicates (`analyze_world_history.py`)
+- A tool to scrape patch dates off of the FFVIX ConsoleGames Wiki (`scrape_patch_dates.py`)
+- A tool to create the plots seen in the README using this data (`plot_world_history.py`)
 
-**This code is just something I threw together in an evening and is not
-intended to be very user-friendly**. You will need to be at least somewhat
-familiar with Python (or be willing to ask a friend/LLM for help) in order
-to be able to use this code effectively.
-
-Large portions of the plotting and textual analysis code were written by ChatGPT
-in chatbot mode. A number of smaller later revisions were written with Claude
-Code.
+It also contains a driver script (`update_repo.py`) along with some GitHub Actions
+which keep the repository up to date.
 
 ### Quickstart
 
@@ -59,7 +60,7 @@ after the system is assumed to start off in the `NEW` state.
 Scraping datasets like this can be surprisingly difficult. For example,
 an initial version of the code checked for the line "Changed to Congested
 World" to determine which worlds were being set to Congested. However, this
-can actually fail for two different reasons:
+can actually fail multiple ways:
 
 - [Several notices have a typo where the line is "Changde to Congested World"](https://na.finalfantasyxiv.com/lodestone/news/detail/d6342fa250d71b1d9694824ea1796cd1094b1431)
 - [If only one world is changed, the notice may read "Changed to **a** Congested World"](https://na.finalfantasyxiv.com/lodestone/news/detail/6c7d04c3238cede50b04abc4787fe0123aaf6f82)
