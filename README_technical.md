@@ -1,7 +1,8 @@
 **Disclaimer: The first version of this code was thrown together with ChatGPT
 and some hack-job manual coding. The refinements were partially done by hand
 with refinements done by Claude Code. It is not optimized for being 
-well-structured or understandable.**
+well-structured or understandable.** If you want to modify this, you will
+probably need light coding experience, or access to a chatbot.
 
 ## More details on tooling
 

@@ -2,7 +2,9 @@ name: Weekly Data Update
 
 on:
   schedule:
-    - cron: "0 6 * * 1" # Every Monday at 06:00 UTC
+    # Since patch days are Tuesdays, we run weekly well after patch
+    # to maximize the chance we pick up changes ASAP.
+    - cron: "0 18 * * 2"
   workflow_dispatch: # Allow manual trigger for testing
 
 jobs:

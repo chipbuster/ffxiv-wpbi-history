@@ -12,7 +12,7 @@ _Last Updated: 2026-06-01_
 These plots show recent history for each Data Center. If you want plots of
 all-time history, see [this page](./README_alltime.md).
 
-Note that "Preferred+" was known as "New" before Patch 7.3.
+Note: "Preferred+" was known as "New" before Patch 7.3.
 
 ### North American Data Center
 
@@ -38,3 +38,7 @@ Note that "Preferred+" was known as "New" before Patch 7.3.
 
 If you would like a technical README, including instructions on how to
 run this code yourself, see [this file](./README_technical.md).
+
+A number of pieces of this repository are written by GPT/Claude, simply
+because I don't find trying to write giant globs of regex to try to find
+a capture group to be that interesting.
