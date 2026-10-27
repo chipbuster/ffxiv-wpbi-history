@@ -7,7 +7,7 @@ for details on how the population balancing incentives work.
 
 ## Results 
 
-_Last Updated: 2026-10-20_
+_Last Updated: 2026-10-27_
 
 These plots show recent history for each Data Center. If you want plots of
 all-time history, see [this page](./README_alltime.md).
